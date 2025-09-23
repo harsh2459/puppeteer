@@ -1,0 +1,8 @@
+seleniumbase==4.25.0
+undetected-chromedriver==3.5.5
+fake-useragent==1.5.0
+requests==2.32.3
+beautifulsoup4==4.12.3
+selenium-wire==5.1.0
+flask==3.0.3
+concurrent-log-handler

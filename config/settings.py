@@ -1,0 +1,11 @@
+TARGET_URL = "https://your-penny-site.com"
+MIN_DELAY = 1
+MAX_DELAY = 5
+PROXY_REFRESH_INTERVAL = 3600
+PROXY_TEST_URL = "https://httpbin.org/ip"
+PROXY_TIMEOUT = 10
+LOG_LEVEL = "INFO"
+LOG_FILE = "logs/pennyflow.log"
+SWARM_SIZE = 5
+CAPTCHA_MODEL_PATH = "models/captcha_model.h5"
+BLOCKCHAIN_PROXY_ENABLED = False
