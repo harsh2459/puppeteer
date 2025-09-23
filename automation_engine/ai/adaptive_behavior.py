@@ -1,3 +1,4 @@
+import time  # ADD THIS
 import random
 import json
 import os

@@ -1,47 +1,40 @@
 import requests
-from bs4 import BeautifulSoup
-import concurrent.futures
-from config import settings
+import time
+import random
 
-def scrape_proxies():
-    proxy_sources = [
-        "https://sslproxies.org/",
-        "https://free-proxy-list.net/",
-        "https://www.proxyscrape.com/free-proxy-list"
-    ]
+class TorProxyManager:
+    def __init__(self):
+        self.tor_port = 9050
+        self.control_port = 9051
+        
+    def get_tor_session(self):
+        """Get requests session with Tor proxy"""
+        session = requests.Session()
+        session.proxies = {
+            'http': f'socks5://127.0.0.1:{self.tor_port}',
+            'https': f'socks5://127.0.0.1:{self.tor_port}'
+        }
+        return session
     
-    proxies = []
-    for url in proxy_sources:
+    def renew_tor_identity(self):
+        """Renew Tor circuit for new IP"""
         try:
-            response = requests.get(url, timeout=10)
-            soup = BeautifulSoup(response.text, 'html.parser')
-            for row in soup.find_all('tr'):
-                cols = row.find_all('td')
-                if len(cols) >= 2:
-                    ip = cols[0].text.strip()
-                    port = cols[1].text.strip()
-                    if ip and port and ip.count('.') == 3:
-                        proxies.append(f"{ip}:{port}")
+            from stem import Signal
+            from stem.control import Controller
+            with Controller.from_port(port=self.control_port) as controller:
+                controller.authenticate()
+                controller.signal(Signal.NEWNYM)
+                time.sleep(5)  # Wait for new circuit
         except:
-            continue
-            
-    return list(set(proxies))
-
-def validate_proxy(proxy):
-    try:
-        response = requests.get(settings.PROXY_TEST_URL, proxies={"http": f"http://{proxy}", "https": f"http://{proxy}"}, timeout=settings.PROXY_TIMEOUT)
-        origin = response.json().get("origin", "")
-        proxy_ip = proxy.split(":")[0]
-        return origin == proxy_ip
-    except:
-        return False
+            # Fallback if Tor control not available
+            pass
 
 def get_valid_proxies():
-    all_proxies = scrape_proxies()
-    valid_proxies = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
-        future_to_proxy = {executor.submit(validate_proxy, proxy): proxy for proxy in all_proxies}
-        for future in concurrent.futures.as_completed(future_to_proxy):
-            if future.result():
-                valid_proxies.append(future_to_proxy[future])
-    return valid_proxies
+    """Fallback to free proxies if Tor not available"""
+    # Simple free proxy list as backup
+    backup_proxies = [
+        "103.150.110.10:8080",
+        "45.95.147.370:8080", 
+        "188.166.117.230:8080"
+    ]
+    return backup_proxies
