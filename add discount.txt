@@ -1,2 +1,0 @@
-add discount 
-make homepage better 
