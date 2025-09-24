@@ -15,7 +15,7 @@ class QuantumConfig:
         self.MIN_DELAY = float(os.getenv('MIN_DELAY', '0.3'))  # Reduced for more natural behavior
         self.MAX_DELAY = float(os.getenv('MAX_DELAY', '2.5'))  # Reduced maximum delay
         self.QUANTUM_TIMING_VARIATION = float(os.getenv('QUANTUM_TIMING_VARIATION', '0.25'))
-        
+        quantum_fingerprintquantum_fingerprint
         # Enhanced proxy settings
         self.USE_TOR_PROXY = os.getenv('USE_TOR_PROXY', 'true').lower() == 'true'
         self.PROXY_ROTATION_INTERVAL = int(os.getenv('PROXY_ROTATION_INTERVAL', '5'))  # More frequent rotation
