@@ -8,6 +8,9 @@ import hashlib
 from datetime import datetime
 from config import settings
 
+# Import enhanced fingerprint system
+from quantum_fingerprint import QuantumFingerprintSpoofer
+
 # 📁 Enhanced persona storage with quantum encryption
 PERSONA_DIR = settings.PERSONA_DIR
 os.makedirs(PERSONA_DIR, exist_ok=True)
@@ -59,36 +62,54 @@ def get_quantum_user_agent():
     
     return random.choice(device_specific_agents[selected_browser])
 
-def generate_quantum_hardware_fingerprint(persona_id=None):
-    """Generate quantum-hardened hardware fingerprint with consistency"""
+def generate_quantum_hardware_fingerprint(persona_id=None, region="US"):
+    """Generate quantum-hardened hardware fingerprint with regional consistency"""
     # Use hash of persona_id for deterministic randomness
     if persona_id:
         random.seed(int(hashlib.md5(persona_id.encode()).hexdigest()[:8], 16))
+    
+    # Regional hardware distribution
+    regional_hardware = {
+        "US": {"nvidia": 0.4, "amd": 0.3, "intel": 0.25, "apple": 0.05},
+        "EU": {"nvidia": 0.35, "amd": 0.35, "intel": 0.25, "apple": 0.05},
+        "JP": {"nvidia": 0.3, "amd": 0.2, "intel": 0.4, "apple": 0.1},
+        "CN": {"nvidia": 0.25, "amd": 0.15, "intel": 0.55, "apple": 0.05},
+        "global": {"nvidia": 0.35, "amd": 0.25, "intel": 0.35, "apple": 0.05}
+    }
+    
+    region_dist = regional_hardware.get(region, regional_hardware["global"])
+    gpu_type = random.choices(
+        list(region_dist.keys()), 
+        weights=list(region_dist.values())
+    )[0]
+    
+    # Regional screen resolutions
+    regional_resolutions = {
+        "US": ['1920x1080', '2560x1440', '3840x2160', '3440x1440'],
+        "EU": ['1920x1080', '2560x1440', '3840x2160', '1680x1050'],
+        "JP": ['1920x1080', '1366x768', '2560x1440', '1536x864'],
+        "CN": ['1920x1080', '1366x768', '2560x1440', '1440x900'],
+        "global": ['1920x1080', '2560x1440', '1366x768', '3840x2160']
+    }
     
     # Modern hardware specifications (2024-2025)
     fingerprint = {
         'persona_id': persona_id or f"quantum_{int(time.time())}_{random.randint(1000,9999)}",
         'cores': random.choice([4, 6, 8, 12, 16]),
         'memory': random.choice([8, 16, 32, 64]),
-        'resolution': random.choice(['1920x1080', '2560x1440', '3840x2160', '1366x768', '1536x864']),
+        'resolution': random.choice(regional_resolutions.get(region, regional_resolutions["global"])),
         'timezone': random.choice(['America/New_York', 'Europe/London', 'Asia/Tokyo', 'Australia/Sydney', 'Europe/Paris', 'Asia/Shanghai']),
-        'gpu_vendor': random.choice(['Intel Inc.', 'NVIDIA Corporation', 'AMD', 'Apple Inc.']),
-        'gpu_renderer': random.choice([
-            'Intel Iris Xe Graphics',
-            'NVIDIA GeForce RTX 4070/PCIe/SSE2',
-            'AMD Radeon RX 7700 XT',
-            'Apple M3 Pro',
-            'NVIDIA GeForce RTX 5060'
-        ]),
+        'gpu_type': gpu_type,
+        'gpu_vendor': self._get_gpu_vendor(gpu_type),
+        'gpu_renderer': self._get_gpu_renderer(gpu_type),
         'user_agent': get_quantum_user_agent(),
         'languages': ['en-US', 'en'] + (['es', 'fr'] if random.random() > 0.7 else []),
         'platform': random.choice(['Win32', 'MacIntel', 'Linux x86_64']),
+        'region': region,
         'created_at': time.time(),
         'quantum_entropy': random.random(),
-        'font_fingerprint': generate_font_fingerprint(),
-        'audio_context': generate_audio_context(),
         'battery_status': generate_battery_status(),
-        'network_connection': generate_network_info()
+        'network_connection': generate_network_info(region)
     }
     
     # Reset random seed
@@ -97,33 +118,25 @@ def generate_quantum_hardware_fingerprint(persona_id=None):
     
     return fingerprint
 
-def generate_font_fingerprint():
-    """Generate realistic font fingerprint based on platform"""
-    platform_fonts = {
-        'Win32': ['Arial', 'Times New Roman', 'Segoe UI', 'Calibri', 'Verdana', 'Tahoma'],
-        'MacIntel': ['Helvetica Neue', 'San Francisco', 'Times New Roman', 'Arial', 'Lucida Grande'],
-        'Linux x86_64': ['DejaVu Sans', 'Liberation Sans', 'Times New Roman', 'Arial', 'Ubuntu']
+def _get_gpu_vendor(self, gpu_type):
+    """Get GPU vendor based on type"""
+    vendors = {
+        "nvidia": "NVIDIA Corporation",
+        "amd": "AMD",
+        "intel": "Intel Inc.", 
+        "apple": "Apple Inc."
     }
-    
-    platform = random.choice(list(platform_fonts.keys()))
-    base_fonts = platform_fonts[platform]
-    
-    # Add some random additional fonts
-    additional_fonts = random.sample([
-        'Georgia', 'Courier New', 'Trebuchet MS', 'Comic Sans MS', 'Impact',
-        'Palatino', 'Garamond', 'Bookman', 'Century Gothic'
-    ], random.randint(2, 6))
-    
-    return base_fonts + additional_fonts
+    return vendors.get(gpu_type, "NVIDIA Corporation")
 
-def generate_audio_context():
-    """Generate realistic audio context fingerprint"""
-    return {
-        'sample_rate': random.choice([44100, 48000, 96000]),
-        'channel_count': random.choice([1, 2]),
-        'buffer_size': random.choice([2048, 4096, 8192]),
-        'max_channels': random.choice([2, 6, 8])
+def _get_gpu_renderer(self, gpu_type):
+    """Get GPU renderer based on type"""
+    renderers = {
+        "nvidia": "NVIDIA GeForce RTX 4080/PCIe/SSE2",
+        "amd": "AMD Radeon RX 7900 XT", 
+        "intel": "Intel(R) UHD Graphics 630",
+        "apple": "Apple M2 Pro"
     }
+    return renderers.get(gpu_type, "NVIDIA GeForce RTX 4080/PCIe/SSE2")
 
 def generate_battery_status():
     """Generate realistic battery status"""
@@ -134,32 +147,35 @@ def generate_battery_status():
         'discharging_time': random.randint(1800, 7200)
     }
 
-def generate_network_info():
-    """Generate realistic network information"""
-    connection_types = ['wifi', '4g', '5g', 'ethernet']
-    return {
-        'type': random.choice(connection_types),
-        'downlink': random.choice([10, 50, 100, 500, 1000]),
-        'effectiveType': random.choice(['4g', '3g', '2g']),
-        'rtt': random.randint(50, 300)
+def generate_network_info(region="US"):
+    """Generate realistic network information with regional variations"""
+    regional_networks = {
+        "US": {"type": "wifi", "downlink": 100, "rtt": 50, "effectiveType": "4g"},
+        "EU": {"type": "wifi", "downlink": 75, "rtt": 70, "effectiveType": "4g"},
+        "JP": {"type": "wifi", "downlink": 150, "rtt": 40, "effectiveType": "4g"},
+        "CN": {"type": "wifi", "downlink": 50, "rtt": 100, "effectiveType": "3g"},
+        "global": {"type": "wifi", "downlink": 75, "rtt": 75, "effectiveType": "4g"}
     }
+    
+    return regional_networks.get(region, regional_networks["global"])
 
-def load_or_create_persona(persona_id=None, stable=True):
-    """Enhanced persona management with rotation and consistency"""
+def load_or_create_persona(persona_id=None, stable=True, region="US"):
+    """Enhanced persona management with regional consistency"""
     if stable and persona_id:
         persona_file = f"{PERSONA_DIR}{persona_id}.json"
         if os.path.exists(persona_file):
             try:
                 with open(persona_file, "r") as f:
                     persona = json.load(f)
-                # Verify persona is not too old (max 7 days)
-                if time.time() - persona.get('created_at', 0) < 604800:  # 7 days
+                # Verify persona is not too old (max 7 days) and region matches
+                if (time.time() - persona.get('created_at', 0) < 604800 and 
+                    persona.get('region') == region):
                     return persona
             except (json.JSONDecodeError, KeyError):
                 pass  # File corrupted, create new one
     
-    # Create new persona
-    persona = generate_quantum_hardware_fingerprint(persona_id)
+    # Create new persona with regional consistency
+    persona = generate_quantum_hardware_fingerprint(persona_id, region)
     
     if stable and persona_id:
         persona_file = f"{PERSONA_DIR}{persona_id}.json"
@@ -171,46 +187,58 @@ def load_or_create_persona(persona_id=None, stable=True):
     
     return persona
 
-def rotate_persona(old_persona_id=None):
-    """Rotate to new persona while maintaining some continuity"""
-    new_persona = generate_quantum_hardware_fingerprint()
-    
-    # Carry over some stable characteristics if available
+def rotate_persona(old_persona_id=None, new_region=None):
+    """Rotate to new persona while maintaining geographic continuity"""
+    old_region = "US"
     if old_persona_id and os.path.exists(f"{PERSONA_DIR}{old_persona_id}.json"):
         try:
             with open(f"{PERSONA_DIR}{old_persona_id}.json", "r") as f:
                 old_persona = json.load(f)
-                # Maintain timezone/language for geographic consistency
+                old_region = old_persona.get('region', 'US')
+        except:
+            pass
+    
+    # Use same region unless specified
+    region = new_region or old_region
+    new_persona = generate_quantum_hardware_fingerprint(region=region)
+    
+    # Carry over stable characteristics for continuity
+    if old_persona_id and os.path.exists(f"{PERSONA_DIR}{old_persona_id}.json"):
+        try:
+            with open(f"{PERSONA_DIR}{old_persona_id}.json", "r") as f:
+                old_persona = json.load(f)
+                # Maintain geographic consistency
                 new_persona['timezone'] = old_persona['timezone']
                 new_persona['languages'] = old_persona['languages']
-                # Maintain similar hardware profile
+                new_persona['region'] = old_persona['region']
+                # Gradual hardware evolution (not abrupt changes)
                 if 'cores' in old_persona:
-                    new_persona['cores'] = old_persona['cores']
-                if 'memory' in old_persona:
-                    new_persona['memory'] = old_persona['memory']
-        except (json.JSONDecodeError, KeyError, IOError):
-            pass  # Continue with new persona
+                    # Small variation in core count (±2)
+                    old_cores = old_persona['cores']
+                    new_persona['cores'] = max(2, min(32, old_cores + random.randint(-2, 2)))
+        except:
+            pass
     
     return new_persona
 
-def get_quantum_stealth_driver(proxy=None, user_agent=None, headless=False, persona_id=None, config=None):
-    """Quantum-enhanced stealth driver with Google evasion and advanced fingerprinting"""
+def get_quantum_stealth_driver(proxy=None, user_agent=None, headless=False, persona_id=None, config=None, region="US"):
+    """Quantum-enhanced stealth driver with advanced fingerprint integration"""
     config = config or settings.current_config
     
-    # 🎭 Persona management with intelligent rotation
+    # 🎭 Enhanced persona management with regional consistency
     should_rotate = (config.FINGERPRINT_ROTATION and 
                     random.random() < config.PERSONA_ROTATION_CHANCE)
     
     if should_rotate:
-        persona = rotate_persona(persona_id)
+        persona = rotate_persona(persona_id, region)
         if config.DEBUG_MODE:
-            print(f"🔄 Persona rotated to: {persona['persona_id']}")
+            print(f"🔄 Persona rotated to: {persona['persona_id']} (Region: {persona['region']})")
     else:
-        persona = load_or_create_persona(persona_id, config.STABLE_PERSONA)
+        persona = load_or_create_persona(persona_id, config.STABLE_PERSONA, region)
 
     options = uc.ChromeOptions()
 
-    # 🕵️ QUANTUM STEALTH ARGUMENTS - ENHANCED FOR GOOGLE EVASION
+    # 🕵️ QUANTUM STEALTH ARGUMENTS - ENHANCED FOR 2025
     stealth_args = [
         # Core stealth - Enhanced for 2025
         "--disable-blink-features=AutomationControlled",
@@ -323,280 +351,304 @@ def get_quantum_stealth_driver(proxy=None, user_agent=None, headless=False, pers
         version_main=125  # Force Chrome 125 for consistency
     )
 
-    # 💉 QUANTUM STEALTH SCRIPTS - ENHANCED FOR GOOGLE EVASION
-    stealth_scripts = [
-        # Core automation removal - Enhanced for 2025
-        """
-        Object.defineProperty(navigator, 'webdriver', {
-            get: () => undefined,
-            configurable: true
+    # 💉 ENHANCED QUANTUM STEALTH SCRIPTS WITH ADVANCED FINGERPRINTING
+    stealth_scripts = []
+    
+    # Initialize quantum fingerprint spoofer
+    fingerprint_spoofer = QuantumFingerprintSpoofer()
+    
+    # 1. COMPREHENSIVE FINGERPRINT PROTECTION
+    comprehensive_script = fingerprint_spoofer.get_comprehensive_fingerprint_protection(
+        region=persona.get('region', 'US'),
+        gpu_type=persona.get('gpu_type', 'nvidia')
+    )
+    stealth_scripts.append(comprehensive_script)
+    
+    # 2. CORE AUTOMATION REMOVAL - ENHANCED
+    stealth_scripts.append("""
+    // ENHANCED AUTOMATION DETECTION REMOVAL
+    Object.defineProperty(navigator, 'webdriver', {
+        get: () => undefined,
+        configurable: true
+    });
+    
+    // Remove all automation traces
+    delete navigator.__proto__.webdriver;
+    delete window.cdc_adoQpoasnfa76pfcZLmcfl;
+    delete window.document.$cdc_asdjflasutopfhvcZLmcfl;
+    
+    // Override permissions API
+    const originalQuery = Permissions.prototype.query;
+    Permissions.prototype.query = function(permissionDesc) {
+        if (permissionDesc.name === 'notifications') {
+            return Promise.resolve({ state: 'denied' });
+        }
+        return originalQuery.call(this, permissionDesc);
+    };
+    """)
+    
+    # 3. ENHANCED HARDWARE SPOOFING
+    stealth_scripts.append(f"""
+    // ENHANCED HARDWARE CHARACTERISTICS SPOOFING
+    Object.defineProperty(navigator, 'hardwareConcurrency', {{
+        get: () => {persona['cores']},
+        configurable: true
+    }});
+    
+    Object.defineProperty(navigator, 'deviceMemory', {{
+        get: () => {persona['memory']},
+        configurable: true
+    }});
+    
+    Object.defineProperty(navigator, 'maxTouchPoints', {{
+        get: () => {random.choice([0, 5, 10])},
+        configurable: true
+    }});
+    
+    // Advanced CPU architecture spoofing
+    Object.defineProperty(navigator, 'cpuClass', {{
+        get: () => 'unknown',
+        configurable: true
+    }});
+    
+    Object.defineProperty(navigator, 'platform', {{
+        get: () => '{persona['platform']}',
+        configurable: true
+    }});
+    """)
+    
+    # 4. REGIONAL LANGUAGE AND LOCALE SPOOFING
+    stealth_scripts.append(f"""
+    // REGIONAL LANGUAGE AND LOCALE CONSISTENCY
+    Object.defineProperty(navigator, 'language', {{ 
+        get: () => '{persona['languages'][0]}',
+        configurable: true 
+    }});
+    
+    Object.defineProperty(navigator, 'languages', {{ 
+        get: () => {persona['languages']},
+        configurable: true 
+    }});
+    
+    Object.defineProperty(navigator, 'userAgent', {{
+        get: () => '{persona['user_agent']}',
+        configurable: true
+    }});
+    """)
+    
+    # 5. ENHANCED SCREEN PROPERTIES WITH REGIONAL CONSISTENCY
+    width, height = persona['resolution'].split('x')
+    stealth_scripts.append(f"""
+    // ENHANCED SCREEN PROPERTIES SPOOFING
+    Object.defineProperty(screen, 'width', {{ get: () => {width} }});
+    Object.defineProperty(screen, 'height', {{ get: () => {height} }});
+    Object.defineProperty(screen, 'availWidth', {{ get: () => {int(width) - random.randint(80, 120)} }});
+    Object.defineProperty(screen, 'availHeight', {{ get: () => {int(height) - random.randint(80, 120)} }});
+    Object.defineProperty(screen, 'colorDepth', {{ get: () => 24 }});
+    Object.defineProperty(screen, 'pixelDepth', {{ get: () => 24 }});
+    Object.defineProperty(screen, 'availLeft', {{ get: () => 0 }});
+    Object.defineProperty(screen, 'availTop', {{ get: () => 0 }});
+    
+    // Enhanced pixel ratio based on device type
+    const pixelRatios = {{
+        'Win32': 1.0,
+        'MacIntel': 2.0,
+        'Linux x86_64': 1.0
+    }};
+    Object.defineProperty(window, 'devicePixelRatio', {{
+        get: () => pixelRatios['{persona['platform']}'] || 1.0,
+        configurable: true
+    }});
+    """)
+    
+    # 6. TIMEZONE AND LOCALE SPOOFING WITH CONSISTENCY
+    stealth_scripts.append(f"""
+    // TIMEZONE AND LOCALE CONSISTENCY
+    Object.defineProperty(Intl.DateTimeFormat.prototype, 'resolvedOptions', {{
+        get: () => () => ({{
+            timeZone: '{persona['timezone']}',
+            locale: 'en-US',
+            calendar: 'gregory',
+            numberingSystem: 'latn'
+        }}),
+        configurable: true
+    }});
+    
+    // Override Date.toString for timezone consistency
+    const originalDateToString = Date.prototype.toString;
+    Date.prototype.toString = function() {{
+        const offset = this.getTimezoneOffset();
+        return originalDateToString.call(this).replace(/GMT[+-]\\d{{4}}/, `GMT${{offset > 0 ? '-' : '+'}}${{Math.abs(offset/60).toString().padStart(2, '0')}}00`);
+    }};
+    
+    // Locale-aware number formatting
+    const originalToLocaleString = Number.prototype.toLocaleString;
+    Number.prototype.toLocaleString = function(locale, options) {{
+        return originalToLocaleString.call(this, '{persona['languages'][0]}', options);
+    }};
+    """)
+    
+    # 7. BATTERY API SPOOFING WITH REALISTIC PATTERNS
+    stealth_scripts.append(f"""
+    // BATTERY API SPOOFING WITH REALISTIC PATTERNS
+    if ('getBattery' in navigator) {{
+        const originalGetBattery = navigator.getBattery;
+        navigator.getBattery = function() {{
+            return Promise.resolve({{
+                charging: {str(persona['battery_status']['charging']).lower()},
+                chargingTime: {persona['battery_status']['charging_time']},
+                dischargingTime: {persona['battery_status']['discharging_time']},
+                level: {persona['battery_status']['level']},
+                addEventListener: function() {{}},
+                removeEventListener: function() {{}}
+            }});
+        }};
+    }}
+    
+    // Simulate battery level changes over time
+    let batterySimulation = {{
+        level: {persona['battery_status']['level']},
+        charging: {str(persona['battery_status']['charging']).lower()}
+    }};
+    
+    setInterval(() => {{
+        if (!batterySimulation.charging) {{
+            batterySimulation.level = Math.max(0.05, batterySimulation.level - 0.001);
+        }} else {{
+            batterySimulation.level = Math.min(1.0, batterySimulation.level + 0.002);
+        }}
+    }}, 60000); // Update every minute
+    """)
+    
+    # 8. PERFORMANCE API SPOOFING WITH REALISTIC METRICS
+    stealth_scripts.append("""
+    // PERFORMANCE API SPOOFING WITH REALISTIC METRICS
+    const originalNow = performance.now;
+    let timeOffset = 0;
+    performance.now = function() {
+        const realTime = originalNow.call(this);
+        // Small, consistent offset that changes slowly
+        timeOffset += (Math.random() - 0.5) * 0.1;
+        return realTime + timeOffset;
+    };
+    
+    // Spoof performance memory with realistic values
+    if (performance.memory) {
+        Object.defineProperty(performance.memory, 'usedJSHeapSize', {
+            get: () => Math.floor(Math.random() * 100000000) + 50000000
         });
-        delete navigator.__proto__.webdriver;
-        """,
         
-        # Hardware spoofing with enhanced realism
-        f"""
-        Object.defineProperty(navigator, 'hardwareConcurrency', {{
-            get: () => {persona['cores']},
-            configurable: true
-        }});
-        Object.defineProperty(navigator, 'deviceMemory', {{
-            get: () => {persona['memory']},
-            configurable: true
-        }});
-        Object.defineProperty(navigator, 'maxTouchPoints', {{
-            get: () => {random.choice([0, 5, 10])},
-            configurable: true
-        }});
-        """,
+        Object.defineProperty(performance.memory, 'totalJSHeapSize', {
+            get: () => Math.floor(Math.random() * 200000000) + 100000000
+        });
         
-        # Language and platform spoofing
-        f"""
-        Object.defineProperty(navigator, 'language', {{ 
-            get: () => '{persona['languages'][0]}',
-            configurable: true 
-        }});
-        Object.defineProperty(navigator, 'languages', {{ 
-            get: () => {persona['languages']},
-            configurable: true 
-        }});
-        Object.defineProperty(navigator, 'platform', {{
-            get: () => '{persona['platform']}',
-            configurable: true
-        }});
-        Object.defineProperty(navigator, 'userAgent', {{
-            get: () => '{persona['user_agent']}',
-            configurable: true
-        }});
-        """,
+        Object.defineProperty(performance.memory, 'jsHeapSizeLimit', {
+            get: () => Math.floor(Math.random() * 400000000) + 200000000
+        });
+    }
+    
+    // Spoof navigation timing
+    const originalGetEntriesByType = performance.getEntriesByType;
+    performance.getEntriesByType = function(type) {
+        if (type === 'navigation') {
+            const realEntries = originalGetEntriesByType.call(this, type);
+            if (realEntries.length > 0) {
+                const navEntry = realEntries[0];
+                // Add small variations to timing
+                navEntry.domainLookupStart += Math.random() * 10;
+                navEntry.connectStart += Math.random() * 15;
+                navEntry.responseStart += Math.random() * 20;
+            }
+            return realEntries;
+        }
+        return originalGetEntriesByType.call(this, type);
+    };
+    """)
+    
+    # 9. GOOGLE-SPECIFIC EVASION ENHANCEMENTS
+    stealth_scripts.append("""
+    // ENHANCED GOOGLE-SPECIFIC EVASION TECHNIQUES
+    // reCAPTCHA v3 evasion
+    if (typeof window.grecaptcha !== 'undefined') {
+        window.grecaptcha.execute = function() {
+            return Promise.resolve('fake_recaptcha_token_' + Math.random().toString(36).substr(2));
+        };
         
-        # Screen properties with enhanced realism
-        f"""
-        Object.defineProperty(screen, 'width', {{ get: () => {persona['resolution'].split('x')[0]} }});
-        Object.defineProperty(screen, 'height', {{ get: () => {persona['resolution'].split('x')[1]} }});
-        Object.defineProperty(screen, 'availWidth', {{ get: () => {int(persona['resolution'].split('x')[0]) - random.randint(80, 120)} }});
-        Object.defineProperty(screen, 'availHeight', {{ get: () => {int(persona['resolution'].split('x')[1]) - random.randint(80, 120)} }});
-        Object.defineProperty(screen, 'colorDepth', {{ get: () => 24 }});
-        Object.defineProperty(screen, 'pixelDepth', {{ get: () => 24 }});
-        Object.defineProperty(screen, 'availLeft', {{ get: () => 0 }});
-        Object.defineProperty(screen, 'availTop', {{ get: () => 0 }});
-        """,
-        
-        # Timezone spoofing with enhanced accuracy
-        f"""
-        Object.defineProperty(Intl.DateTimeFormat.prototype, 'resolvedOptions', {{
-            get: () => () => ({{
-                timeZone: '{persona['timezone']}',
-                locale: 'en-US',
-                calendar: 'gregory',
-                numberingSystem: 'latn'
-            }}),
-            configurable: true
-        }});
-        
-        // Override Date.toString for timezone consistency
-        const originalDateToString = Date.prototype.toString;
-        Date.prototype.toString = function() {{
-            const offset = this.getTimezoneOffset();
-            return originalDateToString.call(this).replace(/GMT[+-]\\d{{4}}/, `GMT${{offset > 0 ? '-' : '+'}}${{Math.abs(offset/60).toString().padStart(2, '0')}}00`);
-        }};
-        """,
-        
-        # WebGL spoofing with enhanced evasion
-        f"""
-        const getParameter = WebGLRenderingContext.prototype.getParameter;
-        WebGLRenderingContext.prototype.getParameter = function(parameter) {{
-            if (parameter === 37445) return "{persona['gpu_vendor']}";  // UNMASKED_VENDOR_WEBGL
-            if (parameter === 37446) return "{persona['gpu_renderer']}";  // UNMASKED_RENDERER_WEBGL
-            if (parameter === 7936) return "{persona['gpu_vendor']}";  // VENDOR
-            if (parameter === 7937) return "{persona['gpu_renderer']}";  // RENDERER
-            if (parameter === 7938) return "WebGL 1.0";  // VERSION
-            return getParameter.call(this, parameter);
-        }};
-        
-        // Spoof WebGL extensions more realistically
-        const getSupportedExtensions = WebGLRenderingContext.prototype.getSupportedExtensions;
-        WebGLRenderingContext.prototype.getSupportedExtensions = function() {{
-            const realExtensions = getSupportedExtensions.call(this);
-            if (!realExtensions) return [];
-            return realExtensions.filter(ext => !ext.includes('debug') && !ext.includes('lose'));
-        }};
-        
-        // Spoof WebGL context attributes
-        const originalGetContext = HTMLCanvasElement.prototype.getContext;
-        HTMLCanvasElement.prototype.getContext = function(type, attributes) {{
-            if (type === 'webgl' || type === 'webgl2') {{
-                attributes = attributes || {{}};
-                attributes.preserveDrawingBuffer = false;
-                attributes.failIfMajorPerformanceCaveat = false;
-            }}
-            return originalGetContext.call(this, type, attributes);
-        }};
-        """,
-        
-        # Canvas fingerprint protection with quantum noise
-        """
-        (function() {
-            const originalGetImageData = CanvasRenderingContext2D.prototype.getImageData;
-            CanvasRenderingContext2D.prototype.getImageData = function(...args) {
-                const result = originalGetImageData.call(this, ...args);
-                // Add quantum-level noise that's consistent per session
-                const noiseSeed = Math.floor(Math.random() * 1000);
-                for (let i = 0; i < result.data.length; i += 4) {
-                    const noise = (noiseSeed + i) % 3 - 1; // -1, 0, or 1
-                    result.data[i] = Math.min(255, Math.max(0, result.data[i] + noise));
-                    result.data[i+1] = Math.min(255, Math.max(0, result.data[i+1] + noise));
-                    result.data[i+2] = Math.min(255, Math.max(0, result.data[i+2] + noise));
+        window.grecaptcha.ready = function(callback) {
+            if (callback) setTimeout(callback, 100);
+        };
+    }
+    
+    // Google Analytics evasion
+    window['ga-disable-GA_MEASUREMENT_ID'] = true;
+    if (window.ga) {
+        const originalGa = window.ga;
+        window.ga = function() {
+            console.log('GA call intercepted:', arguments);
+            return originalGa.apply(this, arguments);
+        };
+    }
+    
+    // Google Tag Manager evasion
+    if (window.dataLayer) {
+        const originalPush = window.dataLayer.push;
+        window.dataLayer.push = function() {
+            console.log('GTM push intercepted:', arguments);
+            return originalPush.apply(this, arguments);
+        };
+    }
+    
+    // Google Fonts evasion
+    const originalCreateElement = document.createElement;
+    document.createElement = function(tagName) {
+        const element = originalCreateElement.call(this, tagName);
+        if (tagName.toLowerCase() === 'link') {
+            const originalSetAttribute = element.setAttribute;
+            element.setAttribute = function(name, value) {
+                if (name === 'href' && value && value.includes('fonts.googleapis.com')) {
+                    return; // Block Google Fonts
                 }
-                return result;
-            };
-            
-            // Spoof canvas toDataURL
-            const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
-            HTMLCanvasElement.prototype.toDataURL = function(type, quality) {
-                const result = originalToDataURL.call(this, type, quality);
-                return result; // Return unchanged but monitoring is fooled
-            };
-        })();
-        """,
-        
-        # Font metric variation with enhanced realism
-        """
-        const originalMeasureText = CanvasRenderingContext2D.prototype.measureText;
-        CanvasRenderingContext2D.prototype.measureText = function(text) {
-            const result = originalMeasureText.call(this, text);
-            const variation = (Math.random() - 0.5) * 1.5; // ±0.75px variation
-            return {
-                width: Math.max(0, result.width + variation),
-                actualBoundingBoxLeft: result.actualBoundingBoxLeft,
-                actualBoundingBoxRight: result.actualBoundingBoxRight,
-                actualBoundingBoxAscent: result.actualBoundingBoxAscent,
-                actualBoundingBoxDescent: result.actualBoundingBoxDescent,
-                fontBoundingBoxAscent: result.fontBoundingBoxAscent,
-                fontBoundingBoxDescent: result.fontBoundingBoxDescent
-            };
-        };
-        """,
-        
-        # Audio context spoofing with enhanced protection
-        f"""
-        const originalCreateAnalyser = AudioContext.prototype.createAnalyser;
-        AudioContext.prototype.createAnalyser = function() {{
-            const analyser = originalCreateAnalyser.call(this);
-            Object.defineProperty(analyser, 'frequencyBinCount', {{
-                get: () => {persona['audio_context']['buffer_size']} / 2,
-                configurable: true
-            }});
-            return analyser;
-        }};
-        
-        // Spoof audio buffer for fingerprint protection
-        const originalGetChannelData = AudioBuffer.prototype.getChannelData;
-        AudioBuffer.prototype.getChannelData = function(channel) {{
-            const data = originalGetChannelData.call(this, channel);
-            // Add minimal, consistent noise
-            for (let i = 0; i < data.length; i += 128) {{
-                data[i] += (Math.random() - 0.5) * 0.0001;
-            }}
-            return data;
-        }};
-        """,
-        
-        # Performance API tampering with enhanced realism
-        """
-        const originalNow = performance.now;
-        let timeOffset = 0;
-        performance.now = function() {
-            const realTime = originalNow.call(this);
-            // Small, consistent offset that changes slowly
-            timeOffset += (Math.random() - 0.5) * 0.1;
-            return realTime + timeOffset;
-        };
-        
-        // Spoof performance memory
-        if (performance.memory) {
-            Object.defineProperty(performance.memory, 'usedJSHeapSize', {
-                get: () => Math.floor(Math.random() * 100000000) + 50000000
-            });
-        }
-        """,
-        
-        # Battery API spoofing
-        f"""
-        if ('getBattery' in navigator) {{
-            const originalGetBattery = navigator.getBattery;
-            navigator.getBattery = function() {{
-                return Promise.resolve({{
-                    charging: {str(persona['battery_status']['charging']).lower()},
-                    chargingTime: {persona['battery_status']['charging_time']},
-                    dischargingTime: {persona['battery_status']['discharging_time']},
-                    level: {persona['battery_status']['level']},
-                    addEventListener: function() {{}},
-                    removeEventListener: function() {{}}
-                }});
-            }};
-        }}
-        """,
-        
-        # Network Information API spoofing
-        f"""
-        if ('connection' in navigator) {{
-            Object.defineProperty(navigator.connection, 'downlink', {{
-                get: () => {persona['network_connection']['downlink']}
-            }});
-            Object.defineProperty(navigator.connection, 'effectiveType', {{
-                get: () => '{persona['network_connection']['effectiveType']}'
-            }});
-            Object.defineProperty(navigator.connection, 'rtt', {{
-                get: () => {persona['network_connection']['rtt']}
-            }});
-        }}
-        """,
-        
-        # Google-specific evasion techniques
-        """
-        // reCAPTCHA evasion
-        if (typeof window.grecaptcha !== 'undefined') {
-            window.grecaptcha.execute = function() {
-                return Promise.resolve('fake_recaptcha_token_' + Math.random().toString(36).substr(2));
+                return originalSetAttribute.call(this, name, value);
             };
         }
-        
-        // Google Analytics evasion
-        window['ga-disable-GA_MEASUREMENT_ID'] = true;
-        if (window.ga) {
-            window.ga = function() {};
-        }
-        if (window.gtag) {
-            window.gtag = function() {};
-        }
-        
-        // Google Tag Manager evasion
-        if (window.dataLayer) {
-            window.dataLayer.push = function() {};
-        }
-        """
-    ]
+        return element;
+    };
+    """)
 
-    # Execute all stealth scripts with enhanced error handling
+    # Execute all enhanced stealth scripts with error handling
     for i, script in enumerate(stealth_scripts):
         try:
             driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {"source": script})
             if config.DEBUG_MODE:
-                print(f"✅ Stealth script {i+1}/{len(stealth_scripts)} injected")
-            time.sleep(0.03)  # Smaller delay for faster injection
+                print(f"✅ Enhanced stealth script {i+1}/{len(stealth_scripts)} injected")
+            time.sleep(0.02)  # Optimized delay for faster injection
         except Exception as e:
             if config.DEBUG_MODE:
-                print(f"⚠️ Stealth script {i+1} injection warning: {e}")
+                print(f"⚠️ Enhanced stealth script {i+1} injection warning: {e}")
             continue
 
-    # Additional quantum evasion: random initial actions for behavioral realism
+    # Additional quantum evasion: behavioral realism initialization
     try:
         driver.execute_script("""
+            // Initialize behavioral realism metrics
+            window.quantumBehavior = {
+                mouseMovements: 0,
+                clicks: 0,
+                scrolls: 0,
+                startTime: Date.now()
+            };
+            
+            // Simulate human-like initial behaviors
             setTimeout(() => { 
-                // Simulate human-like initial movements
+                // Micro-movements for realism
                 window.moveBy(1, 1); 
                 setTimeout(() => window.moveBy(-1, -1), 100);
+                
+                // Initial focus behavior
+                if (document.activeElement) {
+                    document.activeElement.blur();
+                    setTimeout(() => document.activeElement.focus(), 50);
+                }
             }, 500);
         """)
     except:
@@ -638,7 +690,8 @@ def get_persona_stats():
                         'id': persona.get('persona_id', 'unknown'),
                         'created': datetime.fromtimestamp(persona.get('created_at', 0)),
                         'user_agent': persona.get('user_agent', 'unknown'),
-                        'platform': persona.get('platform', 'unknown')
+                        'platform': persona.get('platform', 'unknown'),
+                        'region': persona.get('region', 'unknown')
                     })
             except:
                 continue
@@ -647,5 +700,29 @@ def get_persona_stats():
         'total_personas': len(personas),
         'personas': personas[:10],  # First 10
         'oldest': min([p['created'] for p in personas]) if personas else None,
-        'newest': max([p['created'] for p in personas]) if personas else None
+        'newest': max([p['created'] for p in personas]) if personas else None,
+        'regions': list(set([p['region'] for p in personas]))
     }
+
+# Regional utility functions
+def get_regional_persona(region="US"):
+    """Get a persona specifically for a region"""
+    return generate_quantum_hardware_fingerprint(region=region)
+
+def validate_persona_consistency(persona):
+    """Validate that persona attributes are consistent"""
+    checks = []
+    
+    # Check region and language consistency
+    if persona.get('region') == 'US' and 'en' not in str(persona.get('languages', [])):
+        checks.append('Language inconsistent with region')
+    
+    # Check platform and resolution consistency
+    if persona.get('platform') == 'MacIntel' and '1920x1080' in persona.get('resolution', ''):
+        checks.append('Resolution uncommon for Mac')
+    
+    # Check GPU and platform consistency
+    if persona.get('gpu_type') == 'apple' and persona.get('platform') != 'MacIntel':
+        checks.append('GPU inconsistent with platform')
+    
+    return len(checks) == 0, checks
